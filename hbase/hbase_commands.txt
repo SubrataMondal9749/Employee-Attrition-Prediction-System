@@ -1,0 +1,159 @@
+============================================================
+EMPLOYEE ATTRITION BIG DATA ANALYTICS PROJECT
+HBASE IMPLEMENTATION
+============================================================
+
+
+1. HBASE TABLE
+------------------------------------------------------------
+
+Table name:
+
+employee_attrition_predictions
+
+Column family:
+
+prediction
+
+HBase was used as the employee-level serving layer for
+retrieving individual attrition predictions using
+EmployeeNumber as the row key.
+
+
+2. CREATE HBASE TABLE
+------------------------------------------------------------
+
+Start the HBase shell:
+
+hbase shell
+
+Create the table:
+
+create 'employee_attrition_predictions', 'prediction'
+
+Verify the table:
+
+list
+
+Describe the table:
+
+describe 'employee_attrition_predictions'
+
+
+3. HBASE ROW STRUCTURE
+------------------------------------------------------------
+
+Row key:
+
+EmployeeNumber
+
+Column family:
+
+prediction
+
+Columns:
+
+prediction:probability
+prediction:prediction
+prediction:risk_level
+prediction:model_version
+
+
+4. LOAD SPARK PREDICTIONS INTO HBASE
+------------------------------------------------------------
+
+The Spark prediction output contained 254 test-set
+employees.
+
+For each employee, the following values were stored:
+
+- Attrition probability
+- Predicted attrition class
+- Risk level
+- Model version
+
+
+The model used for the final predictions:
+
+LogisticRegression
+
+
+5. VERIFY NUMBER OF RECORDS
+------------------------------------------------------------
+
+HBase shell command:
+
+count 'employee_attrition_predictions'
+
+Verified result:
+
+254 row(s)
+
+
+6. EMPLOYEE-LEVEL LOOKUP
+------------------------------------------------------------
+
+Example lookup for EmployeeNumber 65:
+
+get 'employee_attrition_predictions', '65'
+
+
+Verified result:
+
+EmployeeNumber:
+65
+
+Model:
+LogisticRegression
+
+Prediction:
+1
+
+Probability:
+0.7541019638939717
+
+Risk level:
+High
+
+
+7. SCAN SAMPLE RECORDS
+------------------------------------------------------------
+
+Command:
+
+scan 'employee_attrition_predictions', {LIMIT => 5}
+
+
+The scan successfully displayed employee-level prediction
+records with their probability, prediction, risk level,
+and model version.
+
+
+8. ROLE OF HBASE
+------------------------------------------------------------
+
+HBase was used for fast key-based employee-level lookup.
+
+HDFS was used for distributed file storage, Hive was used
+for SQL-based analytical queries, and Spark was used for
+distributed data processing and machine learning.
+
+HBase complements these components by providing a
+NoSQL-style lookup layer for individual employee prediction
+results.
+
+
+9. FINAL HBASE VALIDATION
+------------------------------------------------------------
+
+Expected Spark test predictions:
+254
+
+Records stored in HBase:
+254
+
+Records successfully verified:
+254
+
+Therefore, the complete Spark test prediction output was
+successfully integrated into HBase.

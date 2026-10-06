@@ -1,0 +1,68 @@
+============================================================
+HBASE VERIFICATION
+============================================================
+
+HBase Table:
+
+employee_attrition_predictions
+
+
+Column Family:
+
+prediction
+
+
+Number of Spark test predictions:
+
+254
+
+
+HBase count command:
+
+count 'employee_attrition_predictions'
+
+
+Verified result:
+
+254 row(s)
+
+
+------------------------------------------------------------
+EMPLOYEE 65 LOOKUP
+------------------------------------------------------------
+
+Command:
+
+get 'employee_attrition_predictions', '65'
+
+
+Result:
+
+Model Version:
+LogisticRegression
+
+Prediction:
+1
+
+Probability:
+0.7541019638939717
+
+Risk Level:
+High
+
+
+------------------------------------------------------------
+VALIDATION
+------------------------------------------------------------
+
+Spark predictions generated:
+254
+
+HBase records stored:
+254
+
+HBase records verified:
+254
+
+Status:
+SUCCESS

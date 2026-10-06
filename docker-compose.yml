@@ -1,0 +1,293 @@
+version: "3.8"
+
+# =====================================================================
+# BIG DATA TRAINING STACK — Hadoop + Hive + Spark + HBase + Pig + Jupyter
+# Jain University x HCL GUVI — Big Data Analytics Course
+#
+# USAGE:
+#   Core services only (Sessions 3-5: HDFS, MapReduce, Hive)
+#     docker-compose --profile core up -d
+#
+#   Full stack (Sessions 8-10: adds Spark + HBase + Pig + Jupyter)
+#     docker-compose --profile full up -d
+#
+#   Stop everything (keeps data/volumes):
+#     docker-compose --profile full stop
+#
+#   Stop ONE service only (e.g. Spark not needed yet):
+#     docker-compose stop spark-master spark-worker
+#
+#   Start it again later:
+#     docker-compose start spark-master spark-worker
+#
+#   Full teardown (WARNING: deletes data too):
+#     docker-compose --profile full down -v
+#
+#   Access Pig grunt shell:
+#     docker exec -it pig bashP
+#     pig    (inside the container, once PATH is set — see container log)
+#
+#   Access Jupyter:
+#     http://localhost:8888  (token: bigdata2026)
+# =====================================================================
+
+x-hadoop-common:
+  &hadoop-common-env
+  CORE_CONF_fs_defaultFS: hdfs://namenode:8020
+  CORE_CONF_hadoop_http_staticuser_user: root
+  CORE_CONF_hadoop_proxyuser_hue_hosts: "*"
+  CORE_CONF_hadoop_proxyuser_hue_groups: "*"
+  HDFS_CONF_dfs_webhdfs_enabled: "true"
+  HDFS_CONF_dfs_permissions_enabled: "false"
+  HDFS_CONF_dfs_replication: "1"
+
+services:
+
+  # ------------------------------------------------------------------
+  # HDFS — NameNode + DataNode
+  # ------------------------------------------------------------------
+  namenode:
+    image: bde2020/hadoop-namenode:2.0.0-hadoop3.2.1-java8
+    container_name: namenode
+    hostname: namenode
+    profiles: ["core", "full"]
+    restart: always
+    ports:
+      - "9870:9870"   # NameNode Web UI
+      - "8020:8020"   # HDFS RPC
+    environment:
+      <<: *hadoop-common-env
+      CLUSTER_NAME: bigdata-training
+    volumes:
+      - hadoop_namenode:/hadoop/dfs/name
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9870"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  datanode:
+    image: bde2020/hadoop-datanode:2.0.0-hadoop3.2.1-java8
+    container_name: datanode
+    hostname: datanode
+    profiles: ["core", "full"]
+    restart: always
+    ports:
+      - "9864:9864"   # DataNode Web UI
+    environment:
+      <<: *hadoop-common-env
+      SERVICE_PRECONDITION: "namenode:9870"
+    volumes:
+      - hadoop_datanode:/hadoop/dfs/data
+    depends_on:
+      - namenode
+
+  resourcemanager:
+    image: bde2020/hadoop-resourcemanager:2.0.0-hadoop3.2.1-java8
+    container_name: resourcemanager
+    hostname: resourcemanager
+    profiles: ["core", "full"]
+    restart: always
+    ports:
+      - "8088:8088"   # YARN ResourceManager UI
+    environment:
+      <<: *hadoop-common-env
+      SERVICE_PRECONDITION: "namenode:9870 datanode:9864"
+    depends_on:
+      - namenode
+      - datanode
+
+  nodemanager:
+    image: bde2020/hadoop-nodemanager:2.0.0-hadoop3.2.1-java8
+    container_name: nodemanager
+    hostname: nodemanager
+    profiles: ["core", "full"]
+    restart: always
+    environment:
+      <<: *hadoop-common-env
+      SERVICE_PRECONDITION: "namenode:9870 datanode:9864 resourcemanager:8088"
+    depends_on:
+      - resourcemanager
+
+  # ------------------------------------------------------------------
+  # HIVE — Metastore (Postgres-backed) + HiveServer2
+  # ------------------------------------------------------------------
+  hive-metastore-postgres:
+    image: bde2020/hive-metastore-postgresql:2.3.0
+    container_name: hive-metastore-postgres
+    hostname: hive-metastore-postgres
+    profiles: ["core", "full"]
+    restart: always
+    volumes:
+      - hive_metastore_pg:/var/lib/postgresql/data
+
+  hive-metastore:
+    image: bde2020/hive:2.3.2-postgresql-metastore
+    container_name: hive-metastore
+    hostname: hive-metastore
+    profiles: ["core", "full"]
+    restart: always
+    ports:
+      - "9083:9083"   # Metastore Thrift
+    environment:
+      <<: *hadoop-common-env
+      HIVE_SITE_CONF_javax_jdo_option_ConnectionURL: "jdbc:postgresql://hive-metastore-postgres/metastore"
+      HIVE_SITE_CONF_javax_jdo_option_ConnectionDriverName: "org.postgresql.Driver"
+      HIVE_SITE_CONF_javax_jdo_option_ConnectionUserName: "hive"
+      HIVE_SITE_CONF_javax_jdo_option_ConnectionPassword: "hive"
+      SERVICE_PRECONDITION: "namenode:9870 datanode:9864 hive-metastore-postgres:5432"
+    command: /opt/hive/bin/hive --service metastore
+    depends_on:
+      - hive-metastore-postgres
+      - namenode
+
+  hive-server:
+    image: bde2020/hive:2.3.2-postgresql-metastore
+    container_name: hive-server
+    hostname: hive-server
+    profiles: ["core", "full"]
+    restart: always
+    ports:
+      - "10000:10000"  # HiveServer2 JDBC/Beeline
+      - "10002:10002"  # HiveServer2 Web UI
+    environment:
+      <<: *hadoop-common-env
+      HIVE_SITE_CONF_javax_jdo_option_ConnectionURL: "jdbc:postgresql://hive-metastore-postgres/metastore"
+      HIVE_SITE_CONF_javax_jdo_option_ConnectionDriverName: "org.postgresql.Driver"
+      HIVE_SITE_CONF_javax_jdo_option_ConnectionUserName: "hive"
+      HIVE_SITE_CONF_javax_jdo_option_ConnectionPassword: "hive"
+      HIVE_SITE_CONF_hive_metastore_uris: "thrift://hive-metastore:9083"
+      SERVICE_PRECONDITION: "hive-metastore:9083"
+    depends_on:
+      - hive-metastore
+
+  # ------------------------------------------------------------------
+  # SPARK — Master + one Worker (join "full" profile only)
+  # ------------------------------------------------------------------
+  spark-master:
+    image: bde2020/spark-master:3.1.1-hadoop3.2
+    container_name: spark-master
+    hostname: spark-master
+    profiles: ["full"]
+    restart: always
+    ports:
+      - "9090:8080"   # Spark Master Web UI (moved from 8080 -> avoids conflict with existing service on your machine)
+      - "7077:7077"   # Spark Master RPC
+    environment:
+      INIT_DAEMON_STEP: setup_spark
+
+  spark-worker:
+    image: bde2020/spark-worker:3.1.1-hadoop3.2
+    container_name: spark-worker
+    hostname: spark-worker
+    profiles: ["full"]
+    restart: always
+    ports:
+      - "8082:8081"   # Spark Worker Web UI (host 8082 -> avoids clash with Airflow's host 8081)
+    environment:
+      SPARK_MASTER: "spark://spark-master:7077"
+    depends_on:
+      - spark-master
+
+  # ------------------------------------------------------------------
+  # ZOOKEEPER — Dedicated ZooKeeper for HBase
+  # ------------------------------------------------------------------
+  zookeeper:
+    image: zookeeper:3.4.14
+    container_name: zookeeper
+    hostname: zookeeper
+    profiles: ["full"]
+    restart: always
+    environment:
+      ZOO_MY_ID: "1"
+      ZOO_PORT: "2181"
+      ZOO_SERVERS: "server.1=0.0.0.0:2888:3888"
+
+
+  # ------------------------------------------------------------------
+  # HBASE — Standalone (join "full" profile only)
+  # ------------------------------------------------------------------
+  # ------------------------------------------------------------------
+  # HBASE — HBase 1.2.6 using dedicated ZooKeeper
+  # ------------------------------------------------------------------
+  hbase:
+    image: bde2020/hbase-standalone:1.0.0-hbase1.2.6
+    container_name: hbase
+    hostname: hbase
+    profiles: ["full"]
+    restart: always
+    ports:
+      - "16010:16010"
+    environment:
+      <<: *hadoop-common-env
+      HBASE_CONF_hbase_rootdir: hdfs://namenode:8020/hbase
+      HBASE_CONF_hbase_zookeeper_quorum: zookeeper
+      HBASE_CONF_hbase_zookeeper_property_clientPort: "2181"
+      HBASE_CONF_hbase_cluster_distributed: "true"
+      HBASE_CONF_hbase_regionserver_wal_replication: "1"
+      HBASE_CONF_hbase_wal_replication: "1"
+      SERVICE_PRECONDITION: "namenode:9870 datanode:9864 zookeeper:2181"
+    depends_on:
+      - namenode
+      - datanode
+      - zookeeper
+
+  # ------------------------------------------------------------------
+  # PIG — Client container (join "full" profile only)
+  # Connects to the existing Hadoop cluster; no separate cluster needed.
+  # Use it interactively via: docker exec -it pig pig
+  # ------------------------------------------------------------------
+  pig:
+    image: bde2020/hadoop-base:2.0.0-hadoop3.2.1-java8
+    container_name: pig
+    hostname: pig
+    profiles: ["full"]
+    restart: "no"
+    environment:
+      <<: *hadoop-common-env
+      SERVICE_PRECONDITION: "namenode:9870 datanode:9864 resourcemanager:8088"
+    entrypoint: /bin/bash
+    command:
+      - -c
+      - |
+        apt-get update && apt-get install -y wget > /dev/null 2>&1
+        if [ ! -d /opt/pig ]; then
+          wget -q https://downloads.apache.org/pig/pig-0.17.0/pig-0.17.0.tar.gz -O /tmp/pig.tar.gz
+          tar -xzf /tmp/pig.tar.gz -C /opt
+          mv /opt/pig-0.17.0 /opt/pig
+        fi
+        export PIG_HOME=/opt/pig
+        export PATH=$$PATH:/opt/pig/bin
+        export PIG_CLASSPATH=/opt/hadoop-3.2.1/etc/hadoop
+        echo "Pig installed. Container will stay alive — use: docker exec -it pig bash, then 'pig' to start the grunt shell."
+        tail -f /dev/null
+    depends_on:
+      - resourcemanager
+
+  # ------------------------------------------------------------------
+  # JUPYTER — Notebook with PySpark (join "full" profile only)
+  # For Module 4-5 hands-on labs: cleaner than raw spark-shell for a classroom
+  # ------------------------------------------------------------------
+  jupyter:
+    image: jupyter/pyspark-notebook:spark-3.1.1
+    container_name: jupyter
+    hostname: jupyter
+    profiles: ["full"]
+    restart: always
+    ports:
+      - "8888:8888"   # Jupyter Notebook UI
+      - "4040:4040"   # Spark Application UI (per running job)
+    environment:
+      JUPYTER_ENABLE_LAB: "yes"
+      JUPYTER_TOKEN: "bigdata2026"   # change this for a real classroom if desired
+      PYSPARK_SUBMIT_ARGS: "--master spark://spark-master:7077 pyspark-shell"
+    volumes:
+      - jupyter_notebooks:/home/jovyan/work
+    depends_on:
+      - spark-master
+
+volumes:
+  hadoop_namenode:
+  hadoop_datanode:
+  hive_metastore_pg:
+  jupyter_notebooks:

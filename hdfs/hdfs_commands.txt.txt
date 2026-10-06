@@ -1,0 +1,115 @@
+============================================================
+EMPLOYEE ATTRITION BIG DATA ANALYTICS PROJECT
+HDFS IMPLEMENTATION
+============================================================
+
+1. HDFS PROJECT DIRECTORIES
+------------------------------------------------------------
+
+Create the main project directory:
+
+hdfs dfs -mkdir -p /employee_attrition
+
+Create the required subdirectories:
+
+hdfs dfs -mkdir -p /employee_attrition/raw
+hdfs dfs -mkdir -p /employee_attrition/processed
+hdfs dfs -mkdir -p /employee_attrition/results
+
+
+2. LOAD RAW DATA INTO HDFS
+------------------------------------------------------------
+
+Copy the Employee Attrition dataset into the HDFS raw layer:
+
+hdfs dfs -put Employee_Attrition_data.csv \
+/employee_attrition/raw/
+
+The raw dataset used:
+
+Employee_Attrition_data.csv
+
+
+3. VERIFY RAW DATA
+------------------------------------------------------------
+
+List the raw directory:
+
+hdfs dfs -ls /employee_attrition/raw/
+
+Display the first few lines of the dataset:
+
+hdfs dfs -cat /employee_attrition/raw/Employee_Attrition_data.csv | head
+
+
+4. VERIFY HDFS PROJECT STRUCTURE
+------------------------------------------------------------
+
+hdfs dfs -ls /employee_attrition
+
+Expected structure:
+
+/employee_attrition/
+    raw/
+    processed/
+    results/
+
+
+5. HDFS DATA LAYER
+------------------------------------------------------------
+
+Raw:
+    /employee_attrition/raw/
+
+Processed:
+    /employee_attrition/processed/
+
+Results:
+    /employee_attrition/results/
+
+The raw layer stores the original Employee Attrition dataset.
+The processed layer is reserved for transformed data.
+The results layer stores analytical and machine-learning outputs.
+
+
+6. SPARK PREDICTION RESULTS
+------------------------------------------------------------
+
+Spark ML predictions were stored in HDFS in Parquet format:
+
+hdfs://namenode:8020/employee_attrition/results/predictions
+
+The prediction output contains:
+
+- EmployeeNumber
+- actual_attrition
+- prediction
+- attrition_probability
+- risk_level
+
+
+7. VERIFY PREDICTION RESULTS
+------------------------------------------------------------
+
+List the results directory:
+
+hdfs dfs -ls /employee_attrition/results/
+
+Check the prediction output:
+
+hdfs dfs -ls /employee_attrition/results/predictions
+
+
+8. HDFS ROLE IN THE PROJECT
+------------------------------------------------------------
+
+HDFS was used as the distributed storage layer for the
+Employee Attrition Big Data Analytics project.
+
+The original employee dataset was stored in the raw layer.
+Spark processed the data and generated machine-learning
+prediction results, which were stored in the results layer.
+
+HDFS therefore provides the persistent storage layer between
+the source data, analytical processing, and final prediction
+results.

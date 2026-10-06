@@ -1,0 +1,57 @@
+============================================================
+EMPLOYEE ATTRITION BIG DATA ANALYTICS PROJECT
+MODEL COMPARISON RESULTS
+============================================================
+
+Test Set Size:
+254 employees
+
+Training Set Size:
+1216 employees
+
+Total Dataset:
+1470 employees
+
+
+------------------------------------------------------------
+LOGISTIC REGRESSION
+------------------------------------------------------------
+
+Accuracy:   0.874016
+Precision:  0.861909
+Recall:     0.874016
+F1 Score:   0.863431
+ROC-AUC:    0.870058
+
+
+------------------------------------------------------------
+RANDOM FOREST
+------------------------------------------------------------
+
+Accuracy:   0.842520
+Precision:  0.816993
+Recall:     0.842520
+F1 Score:   0.789627
+ROC-AUC:    0.791779
+
+
+------------------------------------------------------------
+MODEL COMPARISON
+------------------------------------------------------------
+
+Model                 Accuracy    Precision    Recall    F1       ROC-AUC
+Logistic Regression   0.874016    0.861909     0.874016  0.863431 0.870058
+Random Forest         0.842520    0.816993     0.842520  0.789627 0.791779
+
+
+------------------------------------------------------------
+FINAL MODEL
+------------------------------------------------------------
+
+Logistic Regression was selected as the final model because
+it achieved higher Accuracy, Precision, Recall, F1 Score,
+and ROC-AUC than Random Forest on the test dataset.
+
+Final Model:
+
+LogisticRegression

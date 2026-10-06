@@ -1,0 +1,81 @@
+============================================================
+EMPLOYEE ATTRITION PREDICTION SUMMARY
+============================================================
+
+Final Model:
+Logistic Regression
+
+Training Records:
+1216
+
+Testing Records:
+254
+
+Total Records:
+1470
+
+
+------------------------------------------------------------
+RISK LEVEL DISTRIBUTION
+------------------------------------------------------------
+
+Risk Level       Number of Employees
+------------------------------------
+Low                       201
+Medium                     37
+High                       16
+------------------------------------
+Total                     254
+
+
+Risk thresholds used:
+
+Low:
+Attrition probability < 0.30
+
+Medium:
+0.30 <= Attrition probability < 0.60
+
+High:
+Attrition probability >= 0.60
+
+
+------------------------------------------------------------
+SAMPLE PREDICTIONS
+------------------------------------------------------------
+
+Employee 4:
+Actual Attrition = 1
+Prediction = 1
+Probability = 0.700103
+Risk = High
+
+Employee 10:
+Actual Attrition = 0
+Prediction = 0
+Probability = 0.203894
+Risk = Low
+
+Employee 58:
+Actual Attrition = 1
+Prediction = 0
+Probability = 0.006356
+Risk = Low
+
+Employee 65:
+Actual Attrition = 1
+Prediction = 1
+Probability = 0.754102
+Risk = High
+
+Employee 90:
+Actual Attrition = 1
+Prediction = 0
+Probability = 0.392720
+Risk = Medium
+
+Employee 133:
+Actual Attrition = 1
+Prediction = 1
+Probability = 0.512227
+Risk = Medium

@@ -1,0 +1,16 @@
+# Environment notes
+
+Required/expected components depend on the university environment:
+- Java
+- Hadoop
+- HDFS
+- YARN
+- Hive
+- Apache Spark
+- PySpark
+- HBase
+- Apache Pig
+- Python/Jupyter
+- Git
+
+Do not install blindly. First confirm the Hadoop/Spark/Hive versions and setup expected by the course or lab.
